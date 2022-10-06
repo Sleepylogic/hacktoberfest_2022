@@ -1,0 +1,123 @@
+from datetime import datetime
+from re import sub
+start_time = datetime.now()
+
+# octant_longest_subsequence_count()
+
+from typing import OrderedDict
+import pandas as pd
+import numpy as np
+import csv 
+import os
+
+import openpyxl
+from pathlib import Path
+
+
+# Convert the data into DataFrame
+
+#df = pd.DataFrame(sheet)
+df = pd.read_excel('input_octant_longest_subsequence.xlsx')
+#print(df)
+mean_u=df['U'].mean()
+mean_v=df['V'].mean()
+mean_w=df['W'].mean()
+
+#inserting columns of mean
+df.insert(4,'Mean U','')
+df.insert(5,'Mean V','')
+df.insert(6,'Mean W','')
+
+#assigning values to the first cell of the mean columns
+df.at[0,'Mean U']=mean_u
+df.at[0,'Mean V']=mean_v
+df.at[0,'Mean W']=mean_w
+
+#inserting columns for subtracting means
+df.insert(7,'U\'=U-Um',df['U']-mean_u)
+df.insert(8,'V\'=V-Vm',df['V']-mean_v)
+df.insert(9,'W\'=W-Wm',df['W']-mean_w)
+
+#function to calculate octant for given 3 indices
+def get_oct(row):
+    q=0
+    if row['U\'=U-Um']>0 and row['V\'=V-Vm']>0:
+        q=1
+    elif row['U\'=U-Um']<0 and row['V\'=V-Vm']>0:
+        q=2
+    elif row['U\'=U-Um']<0 and row['V\'=V-Vm']<0:
+        q=3
+    else:
+        q=4
+    if(row['W\'=W-Wm']<0):
+        q=q*-1
+    return q
+
+#calculating octant and inserting octant values in dataframe
+df['Octant'] = df.apply (lambda row: get_oct(row), axis=1)
+#print(df)
+df.insert(11,"",'')
+
+octlist=list(df['Octant'])
+
+
+#subseq_dict=dict.fromkeys([1,-1,2,-2,3,-3,4,-4],[0,0])
+subseq_dict={1: [0, 0], -1: [0, 0], 2: [0, 0], -2: [0, 0], 3: [0, 0], -3: [0, 0], 4: [0, 0], -4: [0, 0]}
+print(subseq_dict)
+
+count=0
+curr_key=0
+
+# octlist=octlist[:35]
+# print(len(octlist))
+check='a'
+for i in octlist:
+    if count is 0:
+        curr_key=i
+        count+=1
+        #print(1,i,check)
+    else:
+        if curr_key != i:
+            if subseq_dict[curr_key][0]<count:
+                subseq_dict[curr_key][0]=count
+                subseq_dict[curr_key][1]=1
+                # print(2,i,' 1st ele ',check)
+                
+                # print(subseq_dict[curr_key])
+                # print(subseq_dict)
+                
+            elif subseq_dict[curr_key][0]==count:
+                # print(3,i,check)
+                subseq_dict[curr_key][1]+=1
+            count=1
+            curr_key=i
+        else:
+            count+=1
+            # print(4,i,check)
+    # check=chr(ord(check)+1)
+        #print(subseq_dict)
+print(subseq_dict)
+df.to_excel('output.xlsx')
+
+wb_obj = openpyxl.load_workbook('output.xlsx') 
+
+# Read the active sheet:
+sheet = wb_obj.active
+
+sheet['O1']="Longest Subsequence Length"
+sheet['N1']="Count"
+sheet['P1']="Count"
+
+keyslist=list(subseq_dict)
+row=2
+for j in keyslist:
+        sheet['N'+str(row)]=j
+        sheet['O'+str(row)]=subseq_dict[j][0]
+        sheet['P'+str(row)]=subseq_dict[j][1]
+        row+=1
+    
+wb_obj.save('output.xlsx')
+
+#This shall be the last lines of the code.
+end_time = datetime.now()
+print('Duration of Program Execution: {}'.format(end_time - start_time))
